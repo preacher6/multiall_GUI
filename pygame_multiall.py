@@ -4,16 +4,16 @@
 import os
 import pygame
 import easygui as eg
-from properties import Container
+from properties import Container, Button
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GRAY = (128,128,128)
+GRAY = (128, 128, 128)
 LIGHTGRAY = (192, 192, 192)
 RED = (255, 0, 0)
 GAINSBORO = (220, 220, 220)
 DIMGRAY = (105, 105, 105)
-BLUE = (65,105,225)
+BLUE = (65, 105, 225)
 
 class PygameMultiAll:
     def __init__(self):
@@ -38,6 +38,7 @@ class PygameMultiAll:
         self.rect4 = pygame.Rect(self.posi_container[0] + 1, self.posi_container[1] + 91, 198, 28)
         self.rect5 = pygame.Rect(self.posi_container[0] + 1, self.posi_container[1] + 121, 198, 28)
         self.down = 0  # Indicar cuantos desplazamientos ha dado el scroll de clases
+        self.buttons = list()
 
     @staticmethod
     def initialize_pygame():
@@ -54,6 +55,11 @@ class PygameMultiAll:
             self.screenform.blit(self.container_clases, self.posi_container)
             self.draw_clases()
 
+    def draw_buttons(self):
+        if self.actual == 1:
+            for button in self.buttons:
+                button.draw_button()
+
     def draw_clases(self):
         self.selected_class = pygame.Rect(self.posi_container[0] + 1,
                                           (self.posi_container[1]+(30*(self.conten_actual-1))) + 1, 198, 28)
@@ -64,6 +70,10 @@ class PygameMultiAll:
 
     def run_all(self, close):
         """Función que ejecuta all"""
+        open_button = Button(self.screenform, os.path.join('pics', 'open.png'),
+                             position=(self.posi_container[0]+20, self.posi_container[1]+140))
+
+        self.buttons.append(open_button)
         while not close:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -92,5 +102,6 @@ class PygameMultiAll:
 
             self.screenform.fill(DIMGRAY)
             self.draw_surfaces()
+            self.draw_buttons()
             self.clock.tick(60)
             pygame.display.flip()
