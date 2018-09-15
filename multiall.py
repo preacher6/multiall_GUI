@@ -6,7 +6,7 @@ from pygame_multiall import PygameMultiAll
 
 def main():
     """Función principal de la interfaz"""
-    mainly =PygameMultiAll()
+    mainly = PygameMultiAll()
     mainly.run_all(False)
 
 
