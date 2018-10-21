@@ -21,9 +21,11 @@ class PygameMultiAll:
     def __init__(self):
         #self.container_clases = pygame.Rect(100, 100, 400, 100)
         self.initialize_pygame()
-        self.screenform = pygame.display.set_mode((700, 600))
+        self.screenform = pygame.display.set_mode((700, 460))
         self.acciones = pygame.Rect(50, 65, 380, 40)
-        self.panel = pygame.Rect(40, 60, 400, 400)  # Panel grande
+        self.panel = pygame.Rect(40, 60, 400, 360)  # Panel grande
+        self.panelout = pygame.Rect(450, 60, 200, 360)  # Panel configuración sistema
+        self.rectaout = pygame.Rect(465, 110, 170, 210)
         self.subpanel = pygame.Rect(50, 110, 380, 300)  # Panel donde se ubican las acciones a realizar
         # Acción datos
         self.container_clases = pygame.Surface((200, 150))  # listmenu de clases
@@ -40,20 +42,30 @@ class PygameMultiAll:
         self.rect5 = pygame.Rect(self.posi_container[0] + 1, self.posi_container[1] + 121, 198, 28)
         self.down = 0  # Indicar cuantos desplazamientos ha dado el scroll de clases
         # Acción descriptor
-        self.panel_forma = pygame.Rect(65, 150, 350, 110)  # Panel config. forma
+        self.panel_forma = pygame.Rect(65, 150, 350, 100)  # Panel config. forma
+        self.block_forma = False
+        self.block_forma_pred = True
+        self.panel_color = pygame.Rect(65, 290, 350, 100)  # Panel config. forma
         # Sistema
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont('Arial', 14)
         self.font2 = pygame.font.SysFont('Arial', 25)
+        self.font3 = pygame.font.SysFont('Arial', 18)
         self.actual = 1  # Indica en que sección de la GUI se encuentra
 
+        self.parametros = {'clases':2, 'verified':'No', 'descriptor':'HOG', 'clasificador':'SVM', 'validacion':'Sí',
+                           'reduccion':'No'}
         self.buttons = list()
         self.textbuttons = list()
-        self.text_fields = list()
+        self.text_fields_shape = list()
+        self.text_fields_color = list()
         self.radio_buttons_desc = list()
         self.mouse_position = (0, 0)
         self.data = [{'tag':'Clase_1', 'path':'', 'files':[]},
                      {'tag':'Clase_2', 'path':'', 'files':[]}]
+        self.verified_data = 'No'
+        self.descriptor = 'HOG'
+        self.desc_activo = [1, 0]  # Indica q descriptor esta activo [forma, color]
 
     @staticmethod
     def initialize_pygame():
@@ -97,14 +109,26 @@ class PygameMultiAll:
                                   active=True)
         color_radio = RadioButton(self.screenform, 'color', os.path.join('pics', 'radio_unchecked.png'),
                                   os.path.join('pics', 'radio_checked.png'), 'Color', position=(self.subpanel[0] + 10,
-                                                                                                self.subpanel[1] + 160))
+                                                                                                self.subpanel[1] + 150))
 
         shape_pred = RadioButton(self.screenform, 'forma_pred', os.path.join('pics', 'check_unchecked.png'),
                                  os.path.join('pics', 'check_checked.png'), 'Valores predeterminados',
                                  position=(self.subpanel[0] + 20, self.subpanel[1] + 45), active=True, size=(22, 22),
                                  color=LIGHTGRAY)
+        rgb_radio = RadioButton(self.screenform, 'rgb', os.path.join('pics', 'radio_uncheck21.png'),
+                                os.path.join('pics', 'radio_check21.png'), 'RGB', position=(self.subpanel[0] + 25,
+                                                                                            self.subpanel[1] + 190),
+                                size=(21, 21), color=LIGHTGRAY, active=True)
+        hsv_radio = RadioButton(self.screenform, 'hsv', os.path.join('pics', 'radio_uncheck21.png'),
+                                os.path.join('pics', 'radio_check21.png'), 'HSV', position=(self.subpanel[0] + 25,
+                                                                                            self.subpanel[1] + 220),
+                                size=(21, 21), color=LIGHTGRAY)
+        lab_radio = RadioButton(self.screenform, 'lab', os.path.join('pics', 'radio_uncheck21.png'),
+                                os.path.join('pics', 'radio_check21.png'), 'Lab', position=(self.subpanel[0] + 25,
+                                                                                            self.subpanel[1] + 250),
+                                size=(21, 21), color=LIGHTGRAY)
 
-        self.radio_buttons_desc = [shape_radio, color_radio, shape_pred]
+        self.radio_buttons_desc = [shape_radio, color_radio, shape_pred, rgb_radio, hsv_radio, lab_radio]
 
     def build_textfields(self):
         """Construir campos de texto"""
@@ -118,19 +142,41 @@ class PygameMultiAll:
                           clear_on_enter=False, inactive_on_enter=True)
         bins = TextBox((self.panel_forma[0] + 250, self.panel_forma[1] + 70, 40, 20), buffer=["9"], id="bins",
                        clear_on_enter=False, inactive_on_enter=True)
-        self.text_fields = [celda1, celda2, bloque1, bloque2, bins]
+        self.text_fields_shape = [celda1, celda2, bloque1, bloque2, bins]
+
+        bin1 = TextBox((self.panel_color[0]+140, self.panel_color[1]+35, 40, 20), buffer=[""], id="bin1",
+                       clear_on_enter=False, inactive_on_enter=True)
+        bin2 = TextBox((self.panel_color[0] + 190, self.panel_color[1] + 35, 40, 20), buffer=[""], id="bin2",
+                       clear_on_enter=False, inactive_on_enter=True)
+        bin3 = TextBox((self.panel_color[0] + 240, self.panel_color[1] + 35, 40, 20), buffer=[""], id="bin3",
+                       clear_on_enter=False, inactive_on_enter=True)
+
+        self.text_fields_color = [bin1, bin2, bin3]
 
     def draw_surfaces(self):
         """Dibujar superficies adicionales"""
         self.screenform.blit(self.font2.render('-MultiAll-', True, BLACK), (250, 16))
-
         pygame.draw.rect(self.screenform, GAINSBORO, self.panel, 0)
+        pygame.draw.rect(self.screenform, GAINSBORO, self.panelout, 0)  # Recta superficie panel salida parametros
+        pygame.draw.rect(self.screenform, LIGHTGRAY, self.rectaout, 1)  # Recta de parámetros
+        self.screenform.blit(self.font3.render('Configuración del Sistema', True, BLACK), (self.panelout[0] + 13,
+                                                                                           self.panelout[1] + 10))
         pygame.draw.rect(self.screenform, GRAY, self.subpanel, 0)
         if self.actual == 1:
             self.screenform.blit(self.container_clases, self.posi_container)
             self.draw_classes()
 
+        if self.actual == 2:
+            pygame.draw.rect(self.screenform, LIGHTGRAY, self.panel_forma, 0)
+
         pygame.draw.rect(self.screenform, GRAY, self.acciones, 0)
+
+    def block_all(self):
+        image = pygame.Surface(self.panel_forma[2:4])
+        image.fill(GRAY)
+        image.set_alpha(170)
+        if self.block_forma:
+            self.screenform.blit(image, self.panel_forma[:2])
 
     def draw_buttons(self):
         for textbutton in self.textbuttons:
@@ -149,30 +195,45 @@ class PygameMultiAll:
                     button.over = False
 
         if self.actual == 2:
-            image = pygame.Surface(self.panel_forma[2:4])
-            image.fill(GRAY)
-            image.set_alpha(170)
             pygame.draw.rect(self.screenform, LIGHTGRAY, self.panel_forma, 0)
+            pygame.draw.rect(self.screenform, LIGHTGRAY, self.panel_color, 0)
+            for text in self.text_fields_shape:  # Dibujar text fields forma
+                text.update()
+                text.draw(self.screenform)
+            self.screenform.blit(self.font.render('Celdas:', True, BLACK), (self.panel_forma[0]+210,
+                                                                            self.panel_forma[1]+10))
+            self.screenform.blit(self.font.render('Bloques:', True, BLACK), (self.panel_forma[0] + 204,
+                                                                             self.panel_forma[1] + 40))
+            self.screenform.blit(self.font.render('Bins:', True, BLACK), (self.panel_forma[0] + 222,
+                                                                          self.panel_forma[1] + 70))
+            for text in self.text_fields_color:  # Dibujar text fields color
+                text.update()
+                text.draw(self.screenform)
+
             for radio in self.radio_buttons_desc:
-                radio.draw_button()
                 if radio.recta.collidepoint(self.mouse_position):
                     radio.over = True
                 else:
                     radio.over = False
                 if radio.name == "forma":
                     if radio.push:
-                        block_forma = False
+                        self.block_forma = False
                     else:
-                        block_forma = True
-            if block_forma:
-                self.screenform.blit(image, self.panel_forma[:2])
-
-        if self.actual == 2:
-            for text in self.text_fields:
-                text.update()
-                text.draw(self.screenform)
+                        self.block_forma = True
+                if radio.name == "forma_pred":
+                    if radio.push:
+                        self.block_forma_pred = True
+                    else:
+                        self.block_forma_pred = False
+                image = pygame.Surface(self.panel_forma[2:4])
+                image.fill(GRAY)
+                image.set_alpha(100)
+                if self.block_forma_pred:
+                    self.screenform.blit(image, self.panel_forma[:2])
+                radio.draw_button()
 
     def draw_classes(self):
+        """Dibujar contenedor de clases"""
         if self.actual == 1:
             self.selected_class = pygame.Rect(self.posi_container[0] + 1,
                                               (self.posi_container[1]+(30*(self.conten_actual-1))) + 1, 198, 28)
@@ -215,7 +276,7 @@ class PygameMultiAll:
                     self.actual = 3
                 if textbutton.name == "validar":
                     self.actual = 4
-                    for text in self.text_fields:
+                    for text in self.text_fields_shape:
                         text.execute()
                         print("".join(text.buffer))
 
@@ -238,16 +299,55 @@ class PygameMultiAll:
                         print(self.data)
 
         if self.actual == 2:
-            for radio in self.radio_buttons_desc:
+            lista_radio = ["forma", "forma_pred", "color", "rgb", "hsv", "lab"]
+            lista = [0, 0]
+            pushed = False
+            print(self.desc_activo)
+            for radio in self.radio_buttons_desc[:3]:  # Botones:forma, forma_pred y color
                 if radio.recta.collidepoint(position):
+                    for name in lista_radio:
+                        if radio.name == name:
+                            radio.push = not radio.push
+                        if radio.name == "forma":
+                            pushed = True
+                            lista[0] = radio.push
+                        if radio.name == "color":
+                            pushed = True
+                            lista[1] = radio.push
+            print(lista)
+            print(self.desc_activo)
+            #if lista != self.desc_activo:
+            if lista == [0, 0] and pushed:
+                print('in')
+                for radio in self.radio_buttons_desc[:3]:  # Botones:forma, forma_pred y color
+                    print('joo')
                     if radio.name == "forma":
-                        radio.push = not radio.push
-                    if radio.name == "forma_pred":
-                        radio.push = not radio.push
+                        lista[0] = self.desc_activo[0]
+                        radio.push = lista[0]
+                    if radio.name == "color":
+                        lista[1] = self.desc_activo[1]
+                        radio.push = lista[1]
+            if pushed:
+                self.desc_activo = lista.copy()
 
     def check_text(self, event):
-        for text in self.text_fields:
+        """Verificar acciones sobre text fields"""
+        for text in self.text_fields_shape:
             text.get_event(event)
+
+        for text in self.text_fields_color:
+            text.get_event(event)
+
+    def update_parametros(self):
+        self.parametros['clases'] = str(len(self.data))
+        etiquetas = ['Número de clases: ', 'Archivos verificados: ', 'Descriptor: ', 'Clasificador: ',
+                     'Validación: ', 'Reducción dimensión: ']
+        keys = ['clases', 'verified', 'descriptor', 'clasificador', 'validacion', 'reduccion']
+        incremento = 10
+        for etiqueta, key in zip(etiquetas, keys):
+            self.screenform.blit(self.font.render(etiqueta + self.parametros[key],
+                                                  True, BLACK), (self.rectaout[0] + 10, self.rectaout[1] + incremento))
+            incremento += 30
 
     def run_all(self, close):
         """Función que ejecuta all"""
@@ -258,7 +358,6 @@ class PygameMultiAll:
             self.mouse_position = pygame.mouse.get_pos()
             for event in pygame.event.get():
                 self.check_text(event)
-                #self.text_u.get_event(event)
                 if event.type == pygame.QUIT:
                     close = True
                 elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -270,5 +369,7 @@ class PygameMultiAll:
             self.screenform.fill(DIMGRAY)
             self.draw_surfaces()
             self.draw_buttons()
+            self.block_all()
+            self.update_parametros()
             self.clock.tick(60)
             pygame.display.flip()
